@@ -7,7 +7,7 @@ public class SparkForJavaMain {
 
     public static void main(String[] args) throws InterruptedException {
         String checkpointPath = "hdfs://namenode:8082/data/checkpointPath";
-        String nodeList = "datanode1:9092,datanode2:9092";
+        String nodeList = "dn1:9092,dn3:9092";
         String group ="java";
         String topic = "flumetest";
         JavaStreamingContext jssc = JavaStreamingContext.getOrCreate(

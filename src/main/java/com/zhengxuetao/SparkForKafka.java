@@ -6,16 +6,11 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.streaming.Durations;
-import org.apache.spark.streaming.Time;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
-import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka010.*;
-import scala.Tuple2;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -27,18 +22,20 @@ public class SparkForKafka {
     public JavaStreamingContext createStreamingContextForKafka(String nodeList, String group, String topic) {
         SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[*]");
         JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(5));
-
+        jssc.sparkContext().setLogLevel("DEBUG");
         Set<String> topicsSet = new HashSet<>(Arrays.asList(topic));
         Map<String, Object> kafkaParams = new HashMap<>();
         kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, nodeList);
         kafkaParams.put(ConsumerConfig.GROUP_ID_CONFIG, group);
         kafkaParams.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         kafkaParams.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        kafkaParams.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         JavaInputDStream<ConsumerRecord<String, String>> messages = KafkaUtils.createDirectStream(
                 jssc,
                 LocationStrategies.PreferConsistent(),
-                ConsumerStrategies.Subscribe(topicsSet, kafkaParams));
+                ConsumerStrategies.Subscribe(topicsSet, kafkaParams)
+        );
 
         JavaDStream<String> lines = messages.map(ConsumerRecord::value);
         lines.foreachRDD(rdd -> {
@@ -50,13 +47,16 @@ public class SparkForKafka {
     public  JavaStreamingContext createStreamingContextForKafkaSaveOffset(String nodeList, String group, String topic) {
         SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[2]");
         JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(5));
-
+        jssc.sparkContext().setLogLevel("DEBUG");
         Set<String> topicsSet = new HashSet<>(Arrays.asList(topic));
         Map<String, Object> kafkaParams = new HashMap<>();
         kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, nodeList);
+        kafkaParams.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        kafkaParams.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.FALSE);
         kafkaParams.put(ConsumerConfig.GROUP_ID_CONFIG, group);
         kafkaParams.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         kafkaParams.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+
 
         JavaInputDStream<ConsumerRecord<String, String>> messages = KafkaUtils.createDirectStream(
                 jssc,
@@ -75,6 +75,7 @@ public class SparkForKafka {
                 );
             }
             rdd.foreach(line -> System.out.println(line));
+            ((CanCommitOffsets) messages.inputDStream()).commitAsync(offsetRanges.get());
         });
         return jssc;
     }
