@@ -9,8 +9,5 @@
         <module name="SparkForJava" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="SparkForJava" target="8" />
-    </bytecodeTargetLevel>
   </component>
 </project>

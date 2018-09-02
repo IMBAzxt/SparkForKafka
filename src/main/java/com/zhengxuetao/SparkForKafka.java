@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class SparkForKafka {
     public JavaStreamingContext createStreamingContextForKafka(String nodeList, String group, String topic) {
-        SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[2]");
+        SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[*]");
         JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(5));
 
         Set<String> topicsSet = new HashSet<>(Arrays.asList(topic));
@@ -41,7 +41,9 @@ public class SparkForKafka {
                 ConsumerStrategies.Subscribe(topicsSet, kafkaParams));
 
         JavaDStream<String> lines = messages.map(ConsumerRecord::value);
-        lines.print();
+        lines.foreachRDD(rdd -> {
+            rdd.foreach(line -> System.out.println(line));
+        });
         return jssc;
     }
 
