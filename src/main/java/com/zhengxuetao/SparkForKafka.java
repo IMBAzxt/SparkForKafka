@@ -19,6 +19,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author zhengxt
  */
 public class SparkForKafka {
+    /**
+     * 从kafka读取数据，从最早开始读取，不保存offset。
+     * @param nodeList
+     * @param group
+     * @param topic
+     * @return
+     */
     public JavaStreamingContext createStreamingContextForKafka(String nodeList, String group, String topic) {
         SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[*]");
         JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(5));
@@ -44,6 +51,13 @@ public class SparkForKafka {
         return jssc;
     }
 
+    /**
+     * 从kafka读取数据，保存offset，作业重启之后从上一次offset位置读取。
+     * @param nodeList
+     * @param group
+     * @param topic
+     * @return
+     */
     public  JavaStreamingContext createStreamingContextForKafkaSaveOffset(String nodeList, String group, String topic) {
         SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[2]");
         JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(5));
