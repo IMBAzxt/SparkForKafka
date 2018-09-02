@@ -6,13 +6,13 @@ import org.apache.spark.streaming.api.java.*;
 public class SparkForJavaMain {
 
     public static void main(String[] args) throws InterruptedException {
-        String checkpointPath = "hdfs://namenode:8082/data/checkpointPath";
-        String nodeList = "dn1:9092,dn3:9092";
+        String checkpointPath = "hdfs://namenode:8020/data/checkpointPath";
+        String nodeList = "dn1:9092,dn2:9092,dn3:9092,nn:9092";
         String group ="java";
         String topic = "flumetest";
         JavaStreamingContext jssc = JavaStreamingContext.getOrCreate(
-                "/data",
-                (Function0<JavaStreamingContext>) () -> new SparkForKafka().createStreamingContextForKafka(nodeList,group,topic));
+                checkpointPath,
+                (Function0<JavaStreamingContext>) () -> new SparkForKafka().createStreamingContextForKafkaSaveOffset(nodeList,group,topic));
         jssc.start();
         jssc.awaitTermination();
     }
