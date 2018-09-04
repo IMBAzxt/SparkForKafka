@@ -77,7 +77,8 @@ public class SparkForKafka {
      * @return
      */
     public JavaStreamingContext createStreamingContextForKafkaSaveOffset(String nodeList, String group, String topic) {
-        SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[*]");
+//        SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[*]");
+        SparkConf sc = new SparkConf();
         JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(5));
         jssc.sparkContext().setLogLevel("ERROR");
         Map<String, String> kafkaParams = new HashMap<>();
@@ -177,6 +178,7 @@ public class SparkForKafka {
 
     public JavaStreamingContext createStreamingContextForKafkaSaveOffsetByZkClient(String nodeList, String group, String topic) {
         SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[*]");
+//        SparkConf sc = new SparkConf();
         JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(5));
         jssc.sparkContext().setLogLevel("ERROR");
         Map<String, String> kafkaParams = new HashMap<>();
@@ -203,7 +205,7 @@ public class SparkForKafka {
                     //从zookeeper中获取offset信息，并从保存的offset处开始读取
                     String value = zkClient.readData(zkGroupTopicDirs.consumerOffsetDir() + "/" + entry.getKey());
                     //"OffsetRange(topic: 'flumetest', partition: 0, range: [38 -> 38])"，获取offset值，range表示from->end
-                    Long offs = Long.parseLong(value.substring(value.indexOf("[") + 1, value.indexOf("->") - 1));
+                    Long offs = Long.parseLong(value);
                     fromOffsets.put(topicAndPartition, offs);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -240,7 +242,7 @@ public class SparkForKafka {
                 );
                 String offsetPath = "/consumers/" + group + "/offsets/" + o.topic() + "/" + o.partition();
                 ZkUtils zkUtils = ZkUtils.apply(zkClient, false);
-                zkUtils.updatePersistentPath(offsetPath, o.toString(), zkUtils.DefaultAcls());
+                zkUtils.updatePersistentPath(offsetPath, String.valueOf(o.fromOffset()), zkUtils.DefaultAcls());
             }
             rdd.foreach(line -> System.out.println(line));
         });
