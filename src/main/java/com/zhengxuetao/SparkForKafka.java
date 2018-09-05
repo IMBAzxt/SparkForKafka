@@ -15,6 +15,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryUntilElapsed;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
@@ -180,7 +181,7 @@ public class SparkForKafka {
         SparkConf sc = new SparkConf().setAppName("SparkForJava").setMaster("local[*]");
 //        SparkConf sc = new SparkConf();
         JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(5));
-        jssc.sparkContext().setLogLevel("ERROR");
+        jssc.sparkContext().setLogLevel("DEBUG");
         Map<String, String> kafkaParams = new HashMap<>();
         kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, nodeList);
         kafkaParams.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "smallest");
@@ -215,7 +216,6 @@ public class SparkForKafka {
             }
         }
 
-
         Class<MessageAndMetadata<String, String>> streamClass =
                 (Class<MessageAndMetadata<String, String>>) (Class<?>) MessageAndMetadata.class;
         KafkaUtils.createDirectStream(
@@ -244,7 +244,13 @@ public class SparkForKafka {
                 ZkUtils zkUtils = ZkUtils.apply(zkClient, false);
                 zkUtils.updatePersistentPath(offsetPath, String.valueOf(o.fromOffset()), zkUtils.DefaultAcls());
             }
-            rdd.foreach(line -> System.out.println(line));
+            rdd.foreach(line -> {
+                String writeTopic = "result";
+                ProducerRecord<String, String> msg = new ProducerRecord<>(writeTopic, line.message());
+                KafkaWriter kafkaWriter = KafkaWriter.instance();
+                kafkaWriter.send(msg);
+                System.out.println(line);
+            });
         });
 
         return jssc;
