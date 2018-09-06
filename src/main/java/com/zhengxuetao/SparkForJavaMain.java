@@ -10,14 +10,16 @@ public class SparkForJavaMain {
             System.out.println("need [group] [topic]");
             System.exit(0);
         }
-        String checkpointPath = "hdfs://namenode:8020/data/checkpointPath";
+        String hdfs = "hdfs://namenode:8020";
+        String checkpointPath = hdfs + "/data/checkpointPath";
         String nodeList = "dn1:9092,dn3:9092,nn:9092";
         String group = args[0];
         String topic = args[1];
         JavaStreamingContext jssc = JavaStreamingContext.getOrCreate(
                 checkpointPath,
                 (Function0<JavaStreamingContext>) () -> new SparkForKafka()
-                        .createStreamingContextForKafkaSaveOffsetByZkClient(nodeList, group, topic));
+                        .createStreamingContextForHDFS());
+//                        .createStreamingContextForKafkaSaveOffsetByZkClient(nodeList, group, topic));
         jssc.start();
         jssc.awaitTermination();
     }

@@ -14,11 +14,16 @@ import org.I0Itec.zkclient.ZkClient;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryUntilElapsed;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairInputDStream;
@@ -26,14 +31,16 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka.HasOffsetRanges;
 import org.apache.spark.streaming.kafka.KafkaUtils;
 import org.apache.spark.streaming.kafka.OffsetRange;
+import scala.Tuple2;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author zhengxt
  */
-public class SparkForKafka {
+public class SparkForKafka implements Serializable {
     /**
      * 从kafka读取数据，从最早开始读取，不保存offset。
      * @param nodeList
@@ -289,5 +296,27 @@ public class SparkForKafka {
                 consumer.close();
         }
         return map;
+    }
+
+
+    public JavaStreamingContext createStreamingContextForHDFS() {
+        SparkConf sc = new SparkConf().setAppName("SparkForHDFS").setMaster("local[*]");
+//        SparkConf sc = new SparkConf();
+        JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(20));
+        jssc.sparkContext().setLogLevel("ERROR");
+        JavaDStream<String> message = jssc.textFileStream("hdfs://namenode:8020/data/input");
+        JavaDStream<String> rdd = message.flatMap(new FlatMapFunction<String, String>() {
+            @Override
+            public Iterable<String> call(String s) throws Exception {
+                return Arrays.asList(s.split(","));
+            }
+        });
+        rdd.mapToPair(new PairFunction<String, String, Integer>() {
+            @Override
+            public Tuple2<String, Integer> call(String s) throws Exception {
+                return new Tuple2<>(s, 1);
+            }
+        }).saveAsHadoopFiles("hdfs://namenode:8020/data/output/", "log", Text.class, IntWritable.class, TextOutputFormat.class);
+        return jssc;
     }
 }
