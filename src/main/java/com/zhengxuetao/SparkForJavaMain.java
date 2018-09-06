@@ -17,7 +17,7 @@ public class SparkForJavaMain {
         String topic = args[1];
         JavaStreamingContext jssc = JavaStreamingContext.getOrCreate(
                 checkpointPath,
-                (Function0<JavaStreamingContext>) () -> new SparkForKafka()
+                (Function0<JavaStreamingContext>) () -> new SparkStreamForKafka()
                         .createStreamingContextForHDFS());
 //                        .createStreamingContextForKafkaSaveOffsetByZkClient(nodeList, group, topic));
         jssc.start();

@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * @author zhengxt
  */
-public class SparkForKafka implements Serializable {
+public class SparkStreamForKafka implements Serializable {
     /**
      * 从kafka读取数据，从最早开始读取，不保存offset。
      * @param nodeList
@@ -277,7 +277,7 @@ public class SparkForKafka implements Serializable {
         SimpleConsumer consumer = null;
         try {
             consumer = new SimpleConsumer(host, port, 100000, 64 * 1024,
-                    "leaderLookup" + new Date().getTime());
+                    "leaderLookup" + System.currentTimeMillis());
             List<String> topics = Collections.singletonList(topic);
             TopicMetadataRequest req = new TopicMetadataRequest(topics);
             kafka.javaapi.TopicMetadataResponse resp = consumer.send(req);
@@ -319,4 +319,6 @@ public class SparkForKafka implements Serializable {
         }).saveAsHadoopFiles("hdfs://namenode:8020/data/output/", "log", Text.class, IntWritable.class, TextOutputFormat.class);
         return jssc;
     }
+
+
 }
